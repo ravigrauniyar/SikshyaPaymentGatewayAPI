@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SikshyaPaymentGatewayAPI.Data.Entities;
 using SikshyaPaymentGatewayAPI.Services;
 
 namespace SikshyaPaymentGatewayAPI.Data
@@ -19,6 +20,6 @@ namespace SikshyaPaymentGatewayAPI.Data
 
             base.OnConfiguring(optionsBuilder);
         }
-
+        public DbSet<TblTrnJournalPartial> TblTrnJournal { get; set; }
     }
 }

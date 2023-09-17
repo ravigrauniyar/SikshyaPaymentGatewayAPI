@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SikshyaPaymentGatewayAPI.Data;
+using SikshyaPaymentGatewayAPI.Data.Entities;
 
 namespace SikshyaPaymentGatewayAPI.Repositories
 {
@@ -11,14 +12,24 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             _databaseContext = databaseContext;
         }
 
-        public Task<string> AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, double paymentAmount, string paymentFrom)
+        public async Task<double> GetStudentBalanceFromDB(string clientId, string studentRegistrationNumber)
         {
-            throw new NotImplementedException();
+            var balanceQuery = "Select DRAMT, CRAMT from TblTrnJournal where ACID = '" + studentRegistrationNumber + "' AND VOID = 0";
+
+            var amountList = await _databaseContext
+                                .Set<TblTrnJournalPartial>()
+                                .FromSqlRaw(balanceQuery)
+                                .ToListAsync();
+
+            var studentDrBalance = amountList.Sum(amtItem => amtItem.DRAMT);
+            var studentCrBalance = amountList.Sum(amtItem => amtItem.CRAMT);
+
+            return studentDrBalance - studentCrBalance;
+        }
+        public string AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, double paymentAmount, string paymentFrom)
+        {
+            return  "Hi";
         }
 
-        public Task<double> GetStudentBalanceFromDB(string clientId, string studentRegistrationNumber)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -20,7 +20,7 @@ namespace SikshyaPaymentGatewayAPI.Controllers
         }
 
         [HttpGet("StudentBalance")]
-        public IActionResult GetStudentBalance([FromQuery] ShowBalanceModel balanceModel)
+        public async Task<IActionResult> GetStudentBalance([FromQuery] ShowBalanceModel balanceModel)
         {
             ConnectionStringModel connectionString = new()
             {
@@ -32,13 +32,13 @@ namespace SikshyaPaymentGatewayAPI.Controllers
             _connectionService.UpdateConnectionString(connectionString);
 
             var balanceQuery = new GetStudentBalanceQuery(balanceModel.clientId, balanceModel.studentRegistrationNumber);
-            var balance = _mediator.Send(balanceQuery);
+            var balance = await _mediator.Send(balanceQuery);
 
             return Ok(balance);
         }
 
         [HttpPost("ReceiptEntry")]
-        public IActionResult MakeReceiptEntry(ReceiptEntryModel receiptEntryModel)
+        public async Task<IActionResult> MakeReceiptEntry(ReceiptEntryModel receiptEntryModel)
         {
             ConnectionStringModel connectionString = new()
             {
@@ -54,7 +54,7 @@ namespace SikshyaPaymentGatewayAPI.Controllers
                 receiptEntryModel.clientId, receiptEntryModel.studentRegistrationNumber,
                 receiptEntryModel.paymentAmount, receiptEntryModel.paymentFrom
             );
-            var transactionId = _mediator.Send(receiptEntryCommand);
+            var transactionId = await _mediator.Send(receiptEntryCommand);
 
             return Ok(transactionId);
         }

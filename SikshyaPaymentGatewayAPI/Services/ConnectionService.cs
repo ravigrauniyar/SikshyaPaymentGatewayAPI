@@ -13,7 +13,7 @@ namespace SikshyaPaymentGatewayAPI.Services
 
         public void UpdateConnectionString(ConnectionStringModel connectionString)
         {
-            _connectionString = $"Server={connectionString.serverIp};Database={connectionString.database};User Id={connectionString.loginId};Password={connectionString.password};";
+            _connectionString = $"Server={connectionString.serverIp};Database={connectionString.database};User Id={connectionString.loginId};Password={connectionString.password}; TrustServerCertificate=True;";
         }
     }
 }
