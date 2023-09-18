@@ -6,9 +6,9 @@ namespace SikshyaPaymentGatewayAPI.Data.Commands
     {
         public string clientId { get; set; } = string.Empty;
         public string studentRegistrationNumber { get; set; } = string.Empty;
-        public double paymentAmount { get; set; }
+        public float paymentAmount { get; set; }
         public string paymentFrom { get; set; } = string.Empty;
-        public ReceiptEntryCommand(string clientId, string studentRegistrationNumber, double paymentAmount, string paymentFrom)
+        public ReceiptEntryCommand(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom)
         {
             this.clientId = clientId;
             this.studentRegistrationNumber = studentRegistrationNumber;

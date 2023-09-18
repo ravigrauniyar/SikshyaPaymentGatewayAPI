@@ -8,7 +8,7 @@
         public string loginId { get; set; } = string.Empty;
         public string password { get; set; } = string.Empty;
         public string studentRegistrationNumber { get; set; } = string.Empty;
-        public double paymentAmount { get; set; }
+        public float paymentAmount { get; set; }
         public string paymentFrom { get; set; } = string.Empty;
     }
 }

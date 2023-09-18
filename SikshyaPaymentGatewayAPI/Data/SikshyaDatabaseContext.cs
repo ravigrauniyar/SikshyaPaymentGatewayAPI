@@ -21,5 +21,7 @@ namespace SikshyaPaymentGatewayAPI.Data
             base.OnConfiguring(optionsBuilder);
         }
         public DbSet<TblTrnJournalPartial> TblTrnJournal { get; set; }
+        public DbSet<OnlinePaymentReceipt> OnlinePaymentReceipt { get; set;}
+        public DbSet<OnlinePayNotification> OnlinePayNotification { get; set;}
     }
 }
