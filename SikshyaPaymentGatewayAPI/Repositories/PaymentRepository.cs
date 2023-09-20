@@ -4,6 +4,7 @@ using NepaliDateConverter.Net;
 using SikshyaPaymentGatewayAPI.Data;
 using SikshyaPaymentGatewayAPI.Data.Entities;
 using SikshyaPaymentGatewayAPI.Services;
+using System.Collections.Generic;
 
 namespace SikshyaPaymentGatewayAPI.Repositories
 {
@@ -17,7 +18,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             _connectionService = connectionService;
         }
 
-        public async Task<double> GetStudentBalanceFromDB(string clientId, string studentRegistrationNumber)
+        public async Task<double> GetStudentBalanceFromDB(string studentRegistrationNumber)
         {
             // Using partial table to access DRAMT and CRAMT from server's database
 
@@ -35,7 +36,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             // Return student balance
             return studentDrBalance - studentCrBalance;
         }
-        public Task<string> AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom)
+        public string AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom)
         {
             // Variable used to check if entry in both receipt and notification table occurred or not
             int rowsAffected = 0;
@@ -43,7 +44,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             // Convert English date to Nepali date
             var englishDate = DateTime.Now.Date;
             var dateConverter = DateConverter.ConvertToNepali(englishDate.Year, englishDate.Month, englishDate.Day);
-            var nepaliDate = dateConverter.Year + "-" + dateConverter.Month + "-" + dateConverter.Day;
+            var nepaliDate = dateConverter.Year + "-" + dateConverter.Month.ToString("00") + "-" + dateConverter.Day.ToString("00");
 
             // Entry for Receipt table
             OnlinePaymentReceipt paymentReceipt = new()
@@ -121,7 +122,34 @@ namespace SikshyaPaymentGatewayAPI.Repositories
                 rowsAffected += cmd.ExecuteNonQuery();
             }
             // Return transaction id on successful entries else error message
-            return Task.FromResult(rowsAffected == 2 ? paymentReceipt.TRANID : "Error occurred!");
+            return rowsAffected == 2 ? paymentReceipt.TRANID : "Error occurred!";
+        }
+    
+        public string AddTransactionToJournal(double amount, string studentRegistrationNumber)
+        {
+            int rowsAffected = 0;
+
+            // Database connection to insert receipt entry
+            using SqlConnection connection = new(_connectionService.GetConnectionString());
+            
+            connection.Open();
+
+            string sql = "INSERT INTO TBLTRNJOURNAL(VCHRNO, ACID, DRAMT, CRAMT, VOID) VALUES(@VCHRNO, @ACID, @DRAMT, @CRAMT, @VOID)";
+
+            using SqlCommand cmd = new(sql, connection);
+
+            cmd.Parameters.AddWithValue("@VCHRNO", 101);
+            cmd.Parameters.AddWithValue("@ACID", studentRegistrationNumber);
+            cmd.Parameters.AddWithValue("@DRAMT", 0);
+            cmd.Parameters.AddWithValue("@CRAMT", amount);
+            cmd.Parameters.AddWithValue("@VOID", 0);
+
+            rowsAffected += cmd.ExecuteNonQuery();
+
+            var studentBalance = GetStudentBalanceFromDB(studentRegistrationNumber);
+
+            return studentBalance.Result.ToString();
         }
     }
+
 }

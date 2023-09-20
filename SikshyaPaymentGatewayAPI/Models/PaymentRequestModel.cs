@@ -24,7 +24,7 @@ namespace SikshyaPaymentGatewayAPI.Models
         // Payment Amount
 
         [StringLength(18, ErrorMessage = "Amount can have at most 18 characters.")]
-        public double AMT { get; set; }
+        public string AMT { get; set; } = string.Empty;
 
         // Currency
 

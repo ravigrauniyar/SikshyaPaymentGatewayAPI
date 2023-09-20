@@ -13,7 +13,7 @@ namespace SikshyaPaymentGatewayAPI.Data.Handlers
         }
         public async Task<string> Handle(ReceiptEntryCommand command, CancellationToken cancellationToken)
         {
-            return await _paymentRepository.AddPaymentReceiptToDB(command.clientId, command.studentRegistrationNumber, command.paymentAmount, command.paymentFrom);
+            return _paymentRepository.AddPaymentReceiptToDB(command.clientId, command.studentRegistrationNumber, command.paymentAmount, command.paymentFrom);
         }
     }
 }

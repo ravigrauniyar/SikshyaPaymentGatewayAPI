@@ -27,6 +27,7 @@ builder.Services.AddDbContext<SikshyaDatabaseContext>(options =>
 // Map and register services
 builder.Services.AddSingleton<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 var app = builder.Build();

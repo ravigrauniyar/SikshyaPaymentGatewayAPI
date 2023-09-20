@@ -13,7 +13,7 @@ namespace SikshyaPaymentGatewayAPI.Data.Handlers
         }
         public async Task<double> Handle(GetStudentBalanceQuery query, CancellationToken cancellationToken)
         {
-            return await _paymentRepository.GetStudentBalanceFromDB(query.clientId, query.studentRegistrationNumber);
+            return await _paymentRepository.GetStudentBalanceFromDB(query.studentRegistrationNumber);
         }
     }
 }

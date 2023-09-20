@@ -2,7 +2,8 @@
 {
     public interface IPaymentRepository
     {
-        public Task<double> GetStudentBalanceFromDB(string clientId, string studentRegistrationNumber);
-        public Task<string> AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom);
+        public Task<double> GetStudentBalanceFromDB(string studentRegistrationNumber);
+        public string AddPaymentReceiptToDB(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom);
+        public string AddTransactionToJournal(double amount, string studentRegistrationNumber);
     }
 }

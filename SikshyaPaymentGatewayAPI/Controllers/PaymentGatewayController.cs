@@ -12,11 +12,13 @@ namespace SikshyaPaymentGatewayAPI.Controllers
     public class PaymentGatewayController: Controller
     {
         private IConnectionService _connectionService = null!;
+        private readonly IPaymentService _paymentService;
         private readonly IMediator _mediator;
-        public PaymentGatewayController(IConnectionService connectionService, IMediator mediator)
+        public PaymentGatewayController(IConnectionService connectionService, IMediator mediator, IPaymentService fonepayService)
         {
             _connectionService = connectionService;
             _mediator = mediator;
+            _paymentService = fonepayService;
         }
 
         [HttpGet("StudentBalance")]
@@ -57,6 +59,18 @@ namespace SikshyaPaymentGatewayAPI.Controllers
             var transactionId = await _mediator.Send(receiptEntryCommand);
 
             return Ok(transactionId);
+        }
+
+        [HttpPost("PaymentRequest")]
+        public async Task<IActionResult> SendPaymentRequest()
+        {
+            return Ok( await _paymentService.PaymentRequest(new EsewaRequestModel()));
+        }
+
+        [HttpPost("PaymentVerification/{studentRegistrationNumber}")]
+        public async Task<IActionResult> VerifyPaymentRequest([FromRoute] string studentRegistrationNumber)
+        {
+            return Ok(await _paymentService.PaymentVerification(new EsewaVerificationModel(), studentRegistrationNumber));
         }
     }
 }
