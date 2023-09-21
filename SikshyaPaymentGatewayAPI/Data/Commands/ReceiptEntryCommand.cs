@@ -1,19 +1,15 @@
 ﻿using MediatR;
+using SikshyaPaymentGatewayAPI.Data.Entities;
+using SikshyaPaymentGatewayAPI.Models;
 
 namespace SikshyaPaymentGatewayAPI.Data.Commands
 {
-    public class ReceiptEntryCommand: IRequest<string>
+    public class ReceiptEntryCommand: IRequest<OnlinePaymentReceipt>
     {
-        public string clientId { get; set; } = string.Empty;
-        public string studentRegistrationNumber { get; set; } = string.Empty;
-        public float paymentAmount { get; set; }
-        public string paymentFrom { get; set; } = string.Empty;
-        public ReceiptEntryCommand(string clientId, string studentRegistrationNumber, float paymentAmount, string paymentFrom)
-        {
-            this.clientId = clientId;
-            this.studentRegistrationNumber = studentRegistrationNumber;
-            this.paymentAmount = paymentAmount;
-            this.paymentFrom = paymentFrom;
+        public ReceiptEntryModel model;
+        public ReceiptEntryCommand(ReceiptEntryModel receiptEntryModel) 
+        { 
+            this.model = receiptEntryModel;
         }
     }
 }

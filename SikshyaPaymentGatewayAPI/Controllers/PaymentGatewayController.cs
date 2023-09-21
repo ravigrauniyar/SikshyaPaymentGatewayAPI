@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using SikshyaPaymentGatewayAPI.Data.Commands;
 using SikshyaPaymentGatewayAPI.Data.Queries;
 using SikshyaPaymentGatewayAPI.Models;
-using SikshyaPaymentGatewayAPI.Services;
 
 namespace SikshyaPaymentGatewayAPI.Controllers
 {
@@ -11,29 +10,16 @@ namespace SikshyaPaymentGatewayAPI.Controllers
     [Route("/api/payment-gateway/")]
     public class PaymentGatewayController: Controller
     {
-        private IConnectionService _connectionService = null!;
-        private readonly IPaymentService _paymentService;
         private readonly IMediator _mediator;
-        public PaymentGatewayController(IConnectionService connectionService, IMediator mediator, IPaymentService fonepayService)
+        public PaymentGatewayController(IMediator mediator)
         {
-            _connectionService = connectionService;
             _mediator = mediator;
-            _paymentService = fonepayService;
         }
 
         [HttpGet("StudentBalance")]
-        public async Task<IActionResult> GetStudentBalance([FromQuery] ShowBalanceModel balanceModel)
+        public async Task<IActionResult> GetStudentBalance([FromQuery] GetStudentBalanceModel model)
         {
-            ConnectionStringModel connectionString = new()
-            {
-                serverIp = balanceModel.serverIp,
-                database = balanceModel.database,
-                loginId = balanceModel.loginId,
-                password = balanceModel.password
-            };
-            _connectionService.UpdateConnectionString(connectionString);
-
-            var balanceQuery = new GetStudentBalanceQuery(balanceModel.clientId, balanceModel.studentRegistrationNumber);
+            var balanceQuery = new GetStudentBalanceQuery(model);
             var balance = await _mediator.Send(balanceQuery);
 
             return Ok(balance);
@@ -42,35 +28,32 @@ namespace SikshyaPaymentGatewayAPI.Controllers
         [HttpPost("ReceiptEntry")]
         public async Task<IActionResult> MakeReceiptEntry(ReceiptEntryModel receiptEntryModel)
         {
-            ConnectionStringModel connectionString = new()
+            var receiptEntryCommand = new ReceiptEntryCommand(receiptEntryModel);
+
+            var paymentReceipt = await _mediator.Send(receiptEntryCommand);
+
+            if(!String.IsNullOrEmpty(paymentReceipt.TRANID))
             {
-                serverIp = receiptEntryModel.serverIp,
-                database = receiptEntryModel.database,
-                loginId = receiptEntryModel.loginId,
-                password = receiptEntryModel.password
-            };
-            _connectionService.UpdateConnectionString(connectionString);
-
-            var receiptEntryCommand = new ReceiptEntryCommand
-            (
-                receiptEntryModel.clientId, receiptEntryModel.studentRegistrationNumber,
-                receiptEntryModel.paymentAmount, receiptEntryModel.paymentFrom
-            );
-            var transactionId = await _mediator.Send(receiptEntryCommand);
-
-            return Ok(transactionId);
+                var notificationEntry = await _mediator.Send(new NotificationEntryCommand(paymentReceipt, receiptEntryModel));
+                
+                if(!String.IsNullOrEmpty(notificationEntry.TRANID))
+                {
+                    return Ok(notificationEntry);
+                }
+            }
+            return BadRequest("Receipt could not be recorded!");
         }
 
-        [HttpPost("PaymentRequest")]
-        public async Task<IActionResult> SendPaymentRequest()
+        [HttpGet("PaymentRequest")]
+        public async Task<IActionResult> SendPaymentRequest([FromQuery] EsewaRequestModel esewaRequestModel)
         {
-            return Ok( await _paymentService.PaymentRequest(new EsewaRequestModel()));
+            return Ok( await _mediator.Send(new PaymentRequestQuery(esewaRequestModel)));
         }
 
         [HttpPost("PaymentVerification/{studentRegistrationNumber}")]
-        public async Task<IActionResult> VerifyPaymentRequest([FromRoute] string studentRegistrationNumber)
+        public async Task<IActionResult> VerifyPaymentRequest([FromRoute] GetStudentBalanceModel studentBalanceModel, [FromBody] EsewaVerificationModel verificationModel)
         {
-            return Ok(await _paymentService.PaymentVerification(new EsewaVerificationModel(), studentRegistrationNumber));
+            return Ok(await _mediator.Send(new PaymentVerificationCommand(verificationModel, studentBalanceModel)));
         }
     }
 }

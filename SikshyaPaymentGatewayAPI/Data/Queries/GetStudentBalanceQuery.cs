@@ -1,15 +1,14 @@
 ﻿using MediatR;
+using SikshyaPaymentGatewayAPI.Models;
 
 namespace SikshyaPaymentGatewayAPI.Data.Queries
 {
     public class GetStudentBalanceQuery: IRequest<double>
     {
-        public string clientId { get; set; } = string.Empty;
-        public string studentRegistrationNumber { get; set; } = string.Empty;
-        public GetStudentBalanceQuery(string clientId, string studentRegistrationNumber)
+        public GetStudentBalanceModel model;
+        public GetStudentBalanceQuery(GetStudentBalanceModel model)
         {
-            this.clientId = clientId;
-            this.studentRegistrationNumber = studentRegistrationNumber;
+            this.model = model;
         }
     }
 }

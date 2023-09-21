@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using SikshyaPaymentGatewayAPI.Data.Queries;
+using SikshyaPaymentGatewayAPI.Models;
 using SikshyaPaymentGatewayAPI.Repositories;
 
 namespace SikshyaPaymentGatewayAPI.Data.Handlers
@@ -13,7 +14,9 @@ namespace SikshyaPaymentGatewayAPI.Data.Handlers
         }
         public async Task<double> Handle(GetStudentBalanceQuery query, CancellationToken cancellationToken)
         {
-            return await _paymentRepository.GetStudentBalanceFromDB(query.studentRegistrationNumber);
+            // query.showBalanceEncryptedQuery;
+
+            return await _paymentRepository.GetStudentBalanceFromDB(query.model);
         }
     }
 }

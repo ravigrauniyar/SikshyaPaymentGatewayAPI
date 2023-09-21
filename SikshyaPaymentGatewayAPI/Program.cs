@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SikshyaPaymentGatewayAPI.Data;
 using SikshyaPaymentGatewayAPI.Repositories;
-using SikshyaPaymentGatewayAPI.Services;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,17 +17,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
 // Add DbConnection
-builder.Services.AddDbContext<SikshyaDatabaseContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("MsSqlConnectionString")
-    )
+builder.Services.AddDbContext<SikshyaDatabaseContext>
+(    
+    options => { }
 );
 
 // Map and register services
-builder.Services.AddSingleton<IConnectionService, ConnectionService>();
+builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-
+builder.Services.AddScoped<DynamicDbContext>();
 
 var app = builder.Build();
 

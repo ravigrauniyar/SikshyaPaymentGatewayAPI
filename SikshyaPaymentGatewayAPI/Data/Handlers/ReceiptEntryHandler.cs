@@ -1,19 +1,20 @@
 ﻿using MediatR;
 using SikshyaPaymentGatewayAPI.Data.Commands;
+using SikshyaPaymentGatewayAPI.Data.Entities;
 using SikshyaPaymentGatewayAPI.Repositories;
 
 namespace SikshyaPaymentGatewayAPI.Data.Handlers
 {
-    public class ReceiptEntryHandler: IRequestHandler<ReceiptEntryCommand, string>
+    public class ReceiptEntryHandler: IRequestHandler<ReceiptEntryCommand, OnlinePaymentReceipt>
     {
         private readonly IPaymentRepository _paymentRepository;
         public ReceiptEntryHandler(IPaymentRepository paymentRepository)
         {
             _paymentRepository = paymentRepository;
         }
-        public async Task<string> Handle(ReceiptEntryCommand command, CancellationToken cancellationToken)
+        public async Task<OnlinePaymentReceipt> Handle(ReceiptEntryCommand command, CancellationToken cancellationToken)
         {
-            return _paymentRepository.AddPaymentReceiptToDB(command.clientId, command.studentRegistrationNumber, command.paymentAmount, command.paymentFrom);
+            return await _paymentRepository.AddPaymentReceiptToDB(command.model);
         }
     }
 }
