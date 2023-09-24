@@ -48,71 +48,43 @@ namespace SikshyaPaymentGatewayAPI.Controllers
         [HttpGet("StudentBalance")]
         public async Task<IActionResult> GetStudentBalance([FromQuery] string q)
         {
-            var model = CryptographyService.DecryptData<GetStudentBalanceModel>
-                        (
-                            q,
-                            _encryptionKey,
-                            _encryptionIV
-                        );
-
-            var balanceQuery = new GetStudentBalanceQuery(model);
-
             try
             {
+                var model = CryptographyService.DecryptData<GetStudentBalanceModel>(q, _encryptionKey, _encryptionIV);
+
+                var balanceQuery = new GetStudentBalanceQuery(model);
                 var balance = await _mediator.Send(balanceQuery);
 
-                return Ok(balance);
+                return balance.isSuccess ? Ok(balance) : BadRequest(balance);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiResponseModel<string>.AsFailure(ex.Message));
             }
         }
 
         [HttpPost("ReceiptEntry")]
         public async Task<IActionResult> MakeReceiptEntry([FromQuery] string q)
         {
-            var receiptEntryModel = CryptographyService.DecryptData<ReceiptEntryModel>
-                        (
-                            q,
-                            _encryptionKey,
-                            _encryptionIV
-                        );
-
-            var receiptEntryCommand = new ReceiptEntryCommand(receiptEntryModel);
-
             try
             {
+                var receiptEntryModel = CryptographyService.DecryptData<ReceiptEntryModel>(q, _encryptionKey, _encryptionIV);
+
+                var receiptEntryCommand = new ReceiptEntryCommand(receiptEntryModel);
                 var paymentReceipt = await _mediator.Send(receiptEntryCommand);
 
-                if (!string.IsNullOrEmpty(paymentReceipt.TRANID))
+                if (paymentReceipt.isSuccess)
                 {
-                    var notificationEntry = await _mediator.Send(new NotificationEntryCommand(paymentReceipt, receiptEntryModel));
+                    var notificationEntry = await _mediator.Send(new NotificationEntryCommand(paymentReceipt.data!, receiptEntryModel));
 
-                    return Ok(notificationEntry);
+                    return notificationEntry.isSuccess ? Ok(notificationEntry) : BadRequest(notificationEntry);
                 }
-                return BadRequest("Receipt could not be recorded!");
+                else return BadRequest(paymentReceipt);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ApiResponseModel<string>.AsFailure(ex.Message));
             }
         }
-        
-        /*
-         * Esewa service integration
-         * 
-            [HttpGet("PaymentRequest")]
-            public async Task<IActionResult> SendPaymentRequest([FromQuery] EsewaRequestModel esewaRequestModel)
-            {
-                return Ok( await _mediator.Send(new PaymentRequestQuery(esewaRequestModel)));
-            }
-
-            [HttpPost("PaymentVerification/{studentRegistrationNumber}")]
-            public async Task<IActionResult> VerifyPaymentRequest([FromRoute] GetStudentBalanceModel studentBalanceModel, [FromBody] EsewaVerificationModel verificationModel)
-            {
-                return Ok(await _mediator.Send(new PaymentVerificationCommand(verificationModel, studentBalanceModel)));
-            }
-        */
     }
 }

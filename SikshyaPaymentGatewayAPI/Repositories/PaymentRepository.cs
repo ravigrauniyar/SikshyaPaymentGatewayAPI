@@ -184,7 +184,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
                 {
                     return await AddTransactionToJournal(payNotification.PAYAMT, payNotification.STREGNO, dbConnectionModel);
                 }
-                else return "Notification couldn't be recorded!";
+                else return "Failure: Notification couldn't be recorded!";
             }
             else throw new Exception("Invalid Database connection credentials!");
         }
@@ -220,14 +220,14 @@ namespace SikshyaPaymentGatewayAPI.Repositories
 
                 if (rowsAffected == 1)
                 {
-                    return "Transaction recorded successfully!";
+                    return "Success: Transaction recorded successfully!";
                 }
                 else
                 {
                     // Clear connectionString once Context has been initialized
                     await _connectionRepository.UpdateDbContext(new DbConnectionModel());
 
-                    return "Journal did not update!";
+                    return "Failure: Journal did not update!";
                 }
             }
             else throw new Exception("InvalidDatabase connection credentials!");

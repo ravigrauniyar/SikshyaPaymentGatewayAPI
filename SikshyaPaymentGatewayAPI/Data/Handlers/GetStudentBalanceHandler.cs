@@ -6,16 +6,30 @@ using SikshyaPaymentGatewayAPI.Utilities;
 
 namespace SikshyaPaymentGatewayAPI.Data.Handlers
 {
-    public class GetStudentBalanceHandler: IRequestHandler<GetStudentBalanceQuery, double>
+    public class GetStudentBalanceHandler: IRequestHandler<GetStudentBalanceQuery, ApiResponseModel<double>>
     {
         private readonly IPaymentRepository _paymentRepository;
         public GetStudentBalanceHandler(IPaymentRepository paymentRepository)
         {
             _paymentRepository = paymentRepository;
         }
-        public async Task<double> Handle(GetStudentBalanceQuery query, CancellationToken cancellationToken)
+        public async Task<ApiResponseModel<double>> Handle(GetStudentBalanceQuery query, CancellationToken cancellationToken)
         {
-            return await _paymentRepository.GetStudentBalanceFromDB(query.studentBalanceModel);
+            try
+            {
+                var balance = await _paymentRepository.GetStudentBalanceFromDB(query.studentBalanceModel);
+                var apiResponse = ApiResponseModel<double>.AsSuccess
+                (
+                    balance, "Balance inquiry successful!"
+                );
+                return apiResponse;
+            }
+            catch ( Exception ex )
+            {
+                var apiResponse = ApiResponseModel<double>.AsFailure(ex.Message);
+                return apiResponse;
+            }
+
         }
     }
 }
