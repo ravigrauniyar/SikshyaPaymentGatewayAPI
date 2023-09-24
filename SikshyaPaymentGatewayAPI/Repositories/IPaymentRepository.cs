@@ -7,7 +7,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
     {
         public Task<double> GetStudentBalanceFromDB(GetStudentBalanceModel showBalanceModel);
         public Task<OnlinePaymentReceipt> AddPaymentReceiptToDB(ReceiptEntryModel model);
-        public Task<OnlinePayNotification> AddPaymentNotificationToDB(OnlinePaymentReceipt paymentReceipt, ReceiptEntryModel model);
-        public Task<string> AddTransactionToJournal(double amount, GetStudentBalanceModel model);
+        public Task<string> AddPaymentNotificationToDB(OnlinePaymentReceipt paymentReceipt, ReceiptEntryModel model);
+        public Task<string> AddTransactionToJournal(double amount, string stdRegNo, DbConnectionModel model);
     }
 }

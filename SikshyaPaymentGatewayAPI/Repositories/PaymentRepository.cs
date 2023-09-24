@@ -1,7 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NepaliDateConverter.Net;
-using SikshyaPaymentGatewayAPI.Data;
 using SikshyaPaymentGatewayAPI.Data.Entities;
 using SikshyaPaymentGatewayAPI.Models;
 
@@ -9,11 +8,9 @@ namespace SikshyaPaymentGatewayAPI.Repositories
 {
     public class PaymentRepository: IPaymentRepository
     {
-        private readonly DynamicDbContext _dbContextService;
-        private IConnectionRepository _connectionRepository;
-        public PaymentRepository(DynamicDbContext dynamicDbContextService, IConnectionRepository connectionRepository)
+        private readonly IConnectionRepository _connectionRepository;
+        public PaymentRepository(IConnectionRepository connectionRepository)
         {
-            _dbContextService = dynamicDbContextService;
             _connectionRepository = connectionRepository;
         }
         public async Task<double> GetStudentBalanceFromDB(GetStudentBalanceModel showBalanceModel)
@@ -27,21 +24,32 @@ namespace SikshyaPaymentGatewayAPI.Repositories
                 password = showBalanceModel.password
             };
             var databaseContext = await _connectionRepository.UpdateDbContext(dbConnectionModel);
-            // Using partial table to access DRAMT and CRAMT from server's database
 
-            var amountList = await databaseContext.Set<TblTrnJournalPartial>()
-                                    .Where(journal => journal.ACID == showBalanceModel.stdRegNo && journal.VOID == 0)
-                                    .Select(journal => new { journal.DRAMT, journal.CRAMT })
-                                    .ToListAsync();
+            if (!string.IsNullOrEmpty(_connectionRepository.GetDbConnectionString()))
+            {
+                // Clear connectionString once Context has been initialized
+                _connectionRepository.ResetDbConnectionString();
 
-            // Total debit amount
-            var studentDrBalance = amountList.Sum(amtItem => amtItem.DRAMT);
+                // Using partial table to access DRAMT and CRAMT from server's database
 
-            // Total credit amount
-            var studentCrBalance = amountList.Sum(amtItem => amtItem.CRAMT);
+                var amountList = await databaseContext.Set<TblTrnJournalPartial>()
+                                        .Where(journal => journal.ACID == showBalanceModel.stdRegNo && journal.VOID == 0)
+                                        .Select(journal => new { journal.DRAMT, journal.CRAMT })
+                                        .ToListAsync();
 
-            // Return student balance
-            return studentDrBalance - studentCrBalance;
+                // Total debit amount
+                var studentDrBalance = amountList.Sum(amtItem => amtItem.DRAMT);
+
+                // Total credit amount
+                var studentCrBalance = amountList.Sum(amtItem => amtItem.CRAMT);
+
+                // Return student balance
+                return studentDrBalance - studentCrBalance;
+            }
+            else
+            {
+                throw new Exception("Invalid Database connection credentials!");
+            }
         }
         public async Task<OnlinePaymentReceipt> AddPaymentReceiptToDB(ReceiptEntryModel model)
         {
@@ -57,7 +65,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             OnlinePaymentReceipt paymentReceipt = new()
             {
                 TRANID = Guid.NewGuid().ToString("N"),
-                STREGNO = model.studentRegistrationNumber,
+                STREGNO = model.stdRegNo,
                 PAYFROM = model.paymentFrom,
                 PAYAMT = model.paymentAmount,
                 TRANEDATE = DateTime.Now.Date.ToString("yyyy-MM-dd"),
@@ -77,33 +85,43 @@ namespace SikshyaPaymentGatewayAPI.Repositories
                 password = model.password
             };
             await _connectionRepository.UpdateDbContext(dbConnectionModel);
+            
+            var connectionString = _connectionRepository.GetDbConnectionString();
 
-            // Database connection to insert receipt entry
-            using SqlConnection connection = new(_connectionRepository.GetDbConnectionString());
+            if (!string.IsNullOrEmpty(connectionString))
+            {
 
-            connection.Open();
+                // Clear connectionString once connection string has been initialized
+                _connectionRepository.ResetDbConnectionString();
 
-            string sql = "INSERT INTO ONLINEPAYMENT_Receipt(TRANID, STREGNO, PAYFROM, PAYAMT, TRANEDATE, TRANNDATE, TRNTIME, TFLG, RREMARKS, REFID) " +
-                            "VALUES (@TranId, @StRegNo, @PayFrom, @PayAmt, @TranEDate, @TranNDate, @TrnTime, @TFlg, @RRemarks, @RefId)";
+                // Database connection to insert receipt entry
+                using SqlConnection connection = new(connectionString);
 
-            using SqlCommand cmd = new(sql, connection);
+                connection.Open();
 
-            cmd.Parameters.AddWithValue("@TranId", paymentReceipt.TRANID);
-            cmd.Parameters.AddWithValue("@StRegNo", paymentReceipt.STREGNO);
-            cmd.Parameters.AddWithValue("@PayFrom", paymentReceipt.PAYFROM);
-            cmd.Parameters.AddWithValue("@PayAmt", paymentReceipt.PAYAMT);
-            cmd.Parameters.AddWithValue("@TranEDate", paymentReceipt.TRANEDATE);
-            cmd.Parameters.AddWithValue("@TranNDate", paymentReceipt.TRANNDATE);
-            cmd.Parameters.AddWithValue("@TrnTime", paymentReceipt.TRNTIME);
-            cmd.Parameters.AddWithValue("@TFlg", paymentReceipt.TFLG);
-            cmd.Parameters.AddWithValue("@RRemarks", paymentReceipt.RREMARKS);
-            cmd.Parameters.AddWithValue("@RefId", paymentReceipt.REFID);
+                string sql = "INSERT INTO ONLINEPAYMENT_Receipt(TRANID, STREGNO, PAYFROM, PAYAMT, TRANEDATE, TRANNDATE, TRNTIME, TFLG, RREMARKS, REFID) " +
+                                "VALUES (@TranId, @StRegNo, @PayFrom, @PayAmt, @TranEDate, @TranNDate, @TrnTime, @TFlg, @RRemarks, @RefId)";
 
-            rowsAffected += cmd.ExecuteNonQuery();
+                using SqlCommand cmd = new(sql, connection);
 
-            return rowsAffected == 1 ? paymentReceipt : new OnlinePaymentReceipt();
+                cmd.Parameters.AddWithValue("@TranId", paymentReceipt.TRANID);
+                cmd.Parameters.AddWithValue("@StRegNo", paymentReceipt.STREGNO);
+                cmd.Parameters.AddWithValue("@PayFrom", paymentReceipt.PAYFROM);
+                cmd.Parameters.AddWithValue("@PayAmt", paymentReceipt.PAYAMT);
+                cmd.Parameters.AddWithValue("@TranEDate", paymentReceipt.TRANEDATE);
+                cmd.Parameters.AddWithValue("@TranNDate", paymentReceipt.TRANNDATE);
+                cmd.Parameters.AddWithValue("@TrnTime", paymentReceipt.TRNTIME);
+                cmd.Parameters.AddWithValue("@TFlg", paymentReceipt.TFLG);
+                cmd.Parameters.AddWithValue("@RRemarks", paymentReceipt.RREMARKS);
+                cmd.Parameters.AddWithValue("@RefId", paymentReceipt.REFID);
+
+                rowsAffected += cmd.ExecuteNonQuery();
+
+                return rowsAffected == 1 ? paymentReceipt : new OnlinePaymentReceipt();
+            }
+            else throw new Exception("Invalid Database connection credentials!");
         }
-        public async Task<OnlinePayNotification> AddPaymentNotificationToDB(OnlinePaymentReceipt paymentReceipt, ReceiptEntryModel model)
+        public async Task<string> AddPaymentNotificationToDB(OnlinePaymentReceipt paymentReceipt, ReceiptEntryModel model)
         {
             // Variable used to check if entry notification table occurred or not
             int rowsAffected = 0;
@@ -112,6 +130,7 @@ namespace SikshyaPaymentGatewayAPI.Repositories
             OnlinePayNotification payNotification = new()
             {
                 TRANID = paymentReceipt.TRANID,
+                SCHOOLID = model.clientId.ToString(),
                 STREGNO = paymentReceipt.STREGNO,
                 PAYFROM = paymentReceipt.PAYFROM,
                 PAYAMT = paymentReceipt.PAYAMT,
@@ -129,69 +148,89 @@ namespace SikshyaPaymentGatewayAPI.Repositories
                 loginId = model.loginId,
                 password = model.password
             };
+
             await _connectionRepository.UpdateDbContext(dbConnectionModel);
 
-            // Database connection to insert receipt entry
-            using SqlConnection connection = new(_connectionRepository.GetDbConnectionString());
-            
-            connection.Open();
+            var connectionString = _connectionRepository.GetDbConnectionString();
 
-            string sql = "INSERT INTO ONLINEPAY_NOTIFICATION (SCHOOLID, TRANID, STREGNO, EDATE, TRNTIME, PAYAMT, PAYREMARKS, PAYFLG, PAYFROM) " +
-                            "VALUES (@SchoolId, @TranId, @StRegNo, @Edate, @TrnTime, @PayAmt, @PayRemarks, @PayFlg, @PayFrom)";
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                // Clear connectionString once connection string has been initialized
+                _connectionRepository.ResetDbConnectionString();
 
-            using SqlCommand cmd = new(sql, connection);
+                // Database connection to insert receipt entry
+                using SqlConnection connection = new(connectionString);
 
-            cmd.Parameters.AddWithValue("@SchoolId", payNotification.SCHOOLID);
-            cmd.Parameters.AddWithValue("@TranId", payNotification.TRANID);
-            cmd.Parameters.AddWithValue("@StRegNo", payNotification.STREGNO);
-            cmd.Parameters.AddWithValue("@Edate", payNotification.EDATE);
-            cmd.Parameters.AddWithValue("@TrnTime", payNotification.TRNTIME);
-            cmd.Parameters.AddWithValue("@PayAmt", payNotification.PAYAMT);
-            cmd.Parameters.AddWithValue("@PayRemarks", payNotification.PAYREMARKS);
-            cmd.Parameters.AddWithValue("@PayFlg", payNotification.PAYFLG);
-            cmd.Parameters.AddWithValue("@PayFrom", payNotification.PAYFROM);
+                connection.Open();
 
-            rowsAffected += cmd.ExecuteNonQuery();
+                string sql = "INSERT INTO ONLINEPAY_NOTIFICATION (SCHOOLID, TRANID, STREGNO, EDATE, TRNTIME, PAYAMT, PAYREMARKS, PAYFLG, PAYFROM) " +
+                                "VALUES (@SchoolId, @TranId, @StRegNo, @Edate, @TrnTime, @PayAmt, @PayRemarks, @PayFlg, @PayFrom)";
 
-            return rowsAffected == 2 ? payNotification : new OnlinePayNotification();
+                using SqlCommand cmd = new(sql, connection);
+
+                cmd.Parameters.AddWithValue("@SchoolId", payNotification.SCHOOLID);
+                cmd.Parameters.AddWithValue("@TranId", payNotification.TRANID);
+                cmd.Parameters.AddWithValue("@StRegNo", payNotification.STREGNO);
+                cmd.Parameters.AddWithValue("@Edate", payNotification.EDATE);
+                cmd.Parameters.AddWithValue("@TrnTime", payNotification.TRNTIME);
+                cmd.Parameters.AddWithValue("@PayAmt", payNotification.PAYAMT);
+                cmd.Parameters.AddWithValue("@PayRemarks", payNotification.PAYREMARKS);
+                cmd.Parameters.AddWithValue("@PayFlg", payNotification.PAYFLG);
+                cmd.Parameters.AddWithValue("@PayFrom", payNotification.PAYFROM);
+
+                rowsAffected += cmd.ExecuteNonQuery();
+
+                if (rowsAffected == 1)
+                {
+                    return await AddTransactionToJournal(payNotification.PAYAMT, payNotification.STREGNO, dbConnectionModel);
+                }
+                else return "Notification couldn't be recorded!";
+            }
+            else throw new Exception("Invalid Database connection credentials!");
         }
-        public async Task<string> AddTransactionToJournal(double amount, GetStudentBalanceModel model)
+        public async Task<string> AddTransactionToJournal(double amount, string stdRegNo, DbConnectionModel model)
         {
             int rowsAffected = 0;
 
-            var dbConnectionModel = new DbConnectionModel
+            await _connectionRepository.UpdateDbContext(model);
+
+            var connectionString = _connectionRepository.GetDbConnectionString();
+
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                clientId = model.clientId,
-                serverIp = model.serverIp,
-                database = model.database,
-                loginId = model.loginId,
-                password = model.password
-            };
-            await _connectionRepository.UpdateDbContext(dbConnectionModel);
+                // Clear connectionString once connection string has been initialized
+                _connectionRepository.ResetDbConnectionString();
 
-            // Database connection to insert receipt entry
-            using SqlConnection connection = new(_connectionRepository.GetDbConnectionString());
-            
-            connection.Open();
+                // Database connection to insert receipt entry
+                using SqlConnection connection = new(connectionString);
 
-            string sql = "INSERT INTO TBLTRNJOURNAL(VCHRNO, ACID, DRAMT, CRAMT, VOID) VALUES(@VCHRNO, @ACID, @DRAMT, @CRAMT, @VOID)";
+                connection.Open();
 
-            using SqlCommand cmd = new(sql, connection);
+                string sql = "INSERT INTO TBLTRNJOURNAL(VCHRNO, ACID, DRAMT, CRAMT, VOID) VALUES(@VCHRNO, @ACID, @DRAMT, @CRAMT, @VOID)";
 
-            cmd.Parameters.AddWithValue("@VCHRNO", 1234);
-            cmd.Parameters.AddWithValue("@ACID", model.stdRegNo);
-            cmd.Parameters.AddWithValue("@DRAMT", 0);
-            cmd.Parameters.AddWithValue("@CRAMT", amount);
-            cmd.Parameters.AddWithValue("@VOID", 0);
+                using SqlCommand cmd = new(sql, connection);
 
-            rowsAffected += cmd.ExecuteNonQuery();
+                cmd.Parameters.AddWithValue("@VCHRNO", 1234);
+                cmd.Parameters.AddWithValue("@ACID", stdRegNo);
+                cmd.Parameters.AddWithValue("@DRAMT", 0);
+                cmd.Parameters.AddWithValue("@CRAMT", amount);
+                cmd.Parameters.AddWithValue("@VOID", 0);
 
-            if (rowsAffected == 1)
-            {
-                var studentBalance = GetStudentBalanceFromDB(model);
-                return "Updated Student balance: " +  studentBalance.Result.ToString();
+                rowsAffected += cmd.ExecuteNonQuery();
+
+                if (rowsAffected == 1)
+                {
+                    return "Transaction recorded successfully!";
+                }
+                else
+                {
+                    // Clear connectionString once Context has been initialized
+                    await _connectionRepository.UpdateDbContext(new DbConnectionModel());
+
+                    return "Journal did not update!";
+                }
             }
-            else return "Journal did not update!";
+            else throw new Exception("InvalidDatabase connection credentials!");
         }
     }
 }

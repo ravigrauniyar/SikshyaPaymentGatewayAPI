@@ -4,7 +4,7 @@ using SikshyaPaymentGatewayAPI.Models;
 
 namespace SikshyaPaymentGatewayAPI.Data.Commands
 {
-    public class NotificationEntryCommand: IRequest<OnlinePayNotification>
+    public class NotificationEntryCommand: IRequest<string>
     {
         public OnlinePaymentReceipt paymentReceipt;
         public ReceiptEntryModel receiptEntry;

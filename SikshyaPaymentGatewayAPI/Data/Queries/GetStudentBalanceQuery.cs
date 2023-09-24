@@ -5,10 +5,10 @@ namespace SikshyaPaymentGatewayAPI.Data.Queries
 {
     public class GetStudentBalanceQuery: IRequest<double>
     {
-        public GetStudentBalanceModel model;
-        public GetStudentBalanceQuery(GetStudentBalanceModel model)
+        public GetStudentBalanceModel studentBalanceModel;
+        public GetStudentBalanceQuery(GetStudentBalanceModel studentBalanceModel)
         {
-            this.model = model;
+            this.studentBalanceModel = studentBalanceModel;
         }
     }
 }

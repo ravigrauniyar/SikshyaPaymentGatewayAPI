@@ -42,8 +42,8 @@ namespace SikshyaPaymentGatewayAPI.Data.Handlers
                 xmlDoc.LoadXml(responseContent);
 
                 XmlNode responseCodeNode = xmlDoc.SelectSingleNode("//response_code")!;
-
-                if (responseCodeNode != null)
+                return responseCodeNode.InnerText;
+                /*if (responseCodeNode != null)
                 {
                     string responseCode = responseCodeNode.InnerText;
 
@@ -57,7 +57,7 @@ namespace SikshyaPaymentGatewayAPI.Data.Handlers
                 {
                     return ("Response Code not found in XML.");
                 }
-            }
+            */}
             else
             {
                 return ("Error: " + response.StatusCode);

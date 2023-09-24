@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SikshyaPaymentGatewayAPI.Data;
 using SikshyaPaymentGatewayAPI.Models;
 
@@ -9,19 +8,25 @@ namespace SikshyaPaymentGatewayAPI.Repositories
     {
         private readonly IConfiguration _configuration;
         private string _dbConnectionString = string.Empty;
+        private readonly string _defaultConnectionString;
         private readonly DynamicDbContext _dynamicDbContext;
         public ConnectionRepository(IConfiguration configuration, DynamicDbContext dynamicDbContext)
         {
             _configuration = configuration;
             _dynamicDbContext = dynamicDbContext;
+            _defaultConnectionString = _configuration.GetConnectionString("MsSqlConnectionString")!;
         }
         public string GetDbConnectionString()
         {
-            return _dbConnectionString != string.Empty ? _dbConnectionString : _configuration.GetConnectionString("MsSqlConnectionString")!;
+            return _dbConnectionString;
+        }
+        public void ResetDbConnectionString()
+        {
+            _dbConnectionString = string.Empty;
         }
         public async Task<SikshyaDatabaseContext> UpdateDbContext(DbConnectionModel dbConnectionModel)
         {
-            var dbContext = _dynamicDbContext.CreateContext(GetDbConnectionString());
+            var dbContext = _dynamicDbContext.CreateContext(_defaultConnectionString);
 
             var dbCredential = await dbContext.DbConnectionCredentials
                                     .FirstOrDefaultAsync
